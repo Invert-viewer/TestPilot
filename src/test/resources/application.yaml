@@ -1,0 +1,12 @@
+spring:
+  application:
+    name: TestPilot-test
+  datasource:
+    url: jdbc:h2:mem:testpilot;MODE=MySQL;DB_CLOSE_DELAY=-1
+    username: sa
+    password: ""
+    driver-class-name: org.h2.Driver
+
+mybatis:
+  configuration:
+    map-underscore-to-camel-case: true
