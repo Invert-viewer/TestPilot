@@ -53,7 +53,7 @@ async function saveCheck(){
           </div>
         </section>
         <p class="helper">
-          检查记录在组内共享。正式通过结论应附实际检查步骤与证据。
+          检查记录在平台内共享。正式通过结论应附实际检查步骤与证据。
         </p>
       <el-dialog :model-value="!!activeCheck"
       title="记录检查结果。"

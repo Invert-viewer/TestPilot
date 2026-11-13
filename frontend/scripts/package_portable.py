@@ -106,7 +106,7 @@ def main():
     now = datetime.now(timezone(timedelta(hours=8)))
     output = args.output_dir.resolve()
     output.mkdir(parents=True, exist_ok=True)
-    name = args.name or 'TestPilot前端-组员即用版-' + now.strftime('%Y%m%d-%H%M%S')
+    name = args.name or 'TestPilot前端-即用版-' + now.strftime('%Y%m%d-%H%M%S')
     if Path(name).name != name or not name.strip():
         raise SystemExit('--name 只能是文件名，不含目录。')
     archive = output / (name + '.zip')
@@ -147,7 +147,7 @@ npm.cmd run build
 python scripts/package_portable.py --runtime "..\\..\\runtime\\node.exe" --output-dir "..\\..\\重新交付"
 ```
 
-源码开发另外需要 Node/npm 和 Python；普通使用不需要。测试/e2e 含真实任务用例，运行前阅读组员 2 号说明。重新打包脚本使用明确的文件清单，不复制 node_modules、数据库、令牌、本地后端配置或报告。若只运行源码开发服务，代理地址在 frontend/vite.config.js 中设置；便携成品读取根 config.json。
+源码开发另外需要 Node/npm 和 Python；普通使用不需要。测试/e2e 含真实任务用例，运行前阅读 2 号说明。重新打包脚本使用明确的文件清单，不复制 node_modules、数据库、令牌、本地后端配置或报告。若只运行源码开发服务，代理地址在 frontend/vite.config.js 中设置；便携成品读取根 config.json。
 ''', encoding='utf-8')
     for relative in ['前后端接口契约.md','分工和提交要求.md','parts/前端/design.md','验收/前端改造本地验收.md','验收/验收记录-第一条真实流程.md']:
         if (PROJECT / 'docs' / relative).is_file(): copy(PROJECT / 'docs' / relative, stage / 'source/docs' / relative)
@@ -169,7 +169,7 @@ python scripts/package_portable.py --runtime "..\\..\\runtime\\node.exe" --outpu
     (stage / 'THIRD_PARTY_LICENSES/index.json').write_text(json.dumps(licenses,ensure_ascii=False,indent=2), encoding='utf-8')
 
     documents = [(PORTABLE / 'docs/00-先读我.md'), (PORTABLE / 'docs/整体流程.md')]
-    documents += sorted((PORTABLE / 'docs/组员').glob('*.md'))
+    documents += sorted((PORTABLE / 'docs/交接').glob('*.md'))
     documents += [PORTABLE / 'docs/常见问题.md']
     text = '\n\n' + ('\n\n' + '=' * 70 + '\n\n').join(file.read_text(encoding='utf-8') for file in documents)
     (stage / '使用说明.txt').write_text(text, encoding='utf-8-sig')

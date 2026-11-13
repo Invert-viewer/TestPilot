@@ -78,4 +78,4 @@ JSON 与表单切换只检查语法及可编辑结构，允许必填项尚未填
 
 `npm.cmd run package:portable` 在先完成 build 后生成 Windows x64 便携 ZIP。构建脚本需要 Python，按明确清单打包，不包含数据库、后端凭据、node_modules 或报告。可通过 `-- --runtime "node.exe 的完整路径"` 指定现有 Node 运行时；本版本匹配 Windows x64 Node v26.12.1 的官方许可。
 
-成品包含 dist、Node 运行时、启动前端.bat / START.bat、config.json、server.cjs、源码和整体/六人使用说明。普通组员完整解压后双击即可运行前端，不需要安装开发依赖。便携服务只监听本机，平台 /api 请求代理到 config.json 的 backendUrl；它不会替代 Spring Boot 或执行请求编辑器中的目标 URL。真任务必须连接另行运行的后端。
+成品包含 dist、Node 运行时、启动前端.bat / START.bat、config.json、server.cjs、源码和整体/六人使用说明。使用者完整解压后双击即可运行前端，不需要安装开发依赖。便携服务只监听本机，平台 /api 请求代理到 config.json 的 backendUrl；它不会替代 Spring Boot 或执行请求编辑器中的目标 URL。真任务必须连接另行运行的后端。

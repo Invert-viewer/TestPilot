@@ -487,7 +487,6 @@ if (props.draft) {
     >
       {{ submitting ? "提交中…" : "提交真实任务" }}
     </button>
-    <span class="helper">提交后自动轮询状态、增量日志、用例与报告。</span>
   </div>
 </template>
 <style scoped>

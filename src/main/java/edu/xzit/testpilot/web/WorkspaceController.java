@@ -75,5 +75,5 @@ public class WorkspaceController {
         }
         return ok(state,request);
     }
-    static ApiException conflict(){return ApiException.conflict("VERSION_CONFLICT","其他组员已更新此配置，请刷新页面核对后重试");}
+    static ApiException conflict(){return ApiException.conflict("VERSION_CONFLICT","其他会话已更新此配置，请刷新页面核对后重试");}
 }

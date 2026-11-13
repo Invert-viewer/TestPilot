@@ -16,7 +16,7 @@ onMounted(load);onBeforeUnmount(()=>controller.abort());
 </script><template><section class="surface"><div class="panel-heading"><div><h2>已登记的执行场景</h2><p class="muted">来源：Spring Boot · 可用于真实任务</p></div><button class="button outline" :disabled="loading" @click="load">刷新场景</button></div>
 <ErrorState :error="assetError"/><p v-if="loading">读取中…</p><p v-else-if="!realAssets.length && !assetError" class="empty">暂无已登记场景</p>
 <div v-for="asset in realAssets" :key="asset.id" class="check-line"><div><strong>{{asset.name}}</strong><small>{{asset.id}} · 场景 {{asset.source.scenarioId}} · v{{asset.version}}</small></div><button class="link" @click="newTask()">配置任务</button></div></section>
-<div class="source-note">资产草稿可在组内编辑，执行任务时从上方已登记场景中选择。</div>
+<div class="source-note">资产草稿可在平台内编辑，执行任务时从上方已登记场景中选择。</div>
         <ResourcePanel :state="state" v-bind="resources.assets" />
         <div class="cards-two">
           <article

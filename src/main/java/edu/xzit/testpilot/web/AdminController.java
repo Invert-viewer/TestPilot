@@ -29,7 +29,8 @@ public class AdminController {
             } catch (InterruptedException ignored) {
                 Thread.currentThread().interrupt();
             }
-            context.close();
+            try { context.close(); } catch (Throwable ignored) { }
+            Runtime.getRuntime().halt(0);
         }, "testpilot-graceful-shutdown");
         thread.setDaemon(false);
         thread.start();

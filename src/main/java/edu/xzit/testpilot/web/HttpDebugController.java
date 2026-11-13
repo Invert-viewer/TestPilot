@@ -11,8 +11,6 @@ import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.stream.Collectors;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -23,14 +21,10 @@ public class HttpDebugController {
     public record Assertion(String id,String type,String target,String operator,String expected,boolean enabled) {}
     public record Definition(String name,String method,String url,String charset,List<Pair> query,List<Pair> headers,List<Pair> cookies,Body body,
                              int timeoutMs,boolean followRedirects,List<Assertion> assertions) {}
-    private final Set<String> origins;
     private final HttpClient client=HttpClient.newBuilder().followRedirects(HttpClient.Redirect.NEVER).proxy(new ProxySelector(){
         public List<Proxy> select(URI u){return List.of(Proxy.NO_PROXY);}
         public void connectFailed(URI u,SocketAddress a,IOException e){}
     }).build();
-    public HttpDebugController(@Value("${testpilot.debug.allowed-origins:http://127.0.0.1:4000}") String allowed) {
-        origins=Arrays.stream(allowed.split(",")).map(String::trim).filter(s->!s.isEmpty()).map(ResourceValidation::url).map(ResourceValidation::origin).collect(Collectors.toUnmodifiableSet());
-    }
     private static String encode(String s,Charset charset){return URLEncoder.encode(s,charset);}
     private static List<Pair> enabled(List<Pair> pairs,String field) {
         if(pairs==null || pairs.stream().anyMatch(p->p==null || p.key()==null || p.value()==null))throw ResourceValidation.invalid(field,"需要有效键值行");
@@ -44,7 +38,6 @@ public class HttpDebugController {
         if(d.timeoutMs()<1||d.timeoutMs()>60000)throw ResourceValidation.invalid("timeoutMs","范围为 1 至 60000 ms");
         if(d.charset()==null||!Set.of("UTF-8","GB18030").contains(d.charset()))throw ResourceValidation.invalid("charset","不支持的字符集");
         Charset cs=Charset.forName(d.charset()); URI uri=ResourceValidation.url(d.url());
-        if(!origins.contains(ResourceValidation.origin(uri)))throw new ApiException(HttpStatus.FORBIDDEN,"TARGET_NOT_ALLOWED","目标来源未列入组长配置的调试范围");
         String query=form(enabled(d.query(),"query"),cs);
         if(!query.isEmpty())uri=URI.create(uri+(uri.getQuery()==null?"?":"&")+query);
         var headers=new TreeMap<String,String>(String.CASE_INSENSITIVE_ORDER);
@@ -89,7 +82,6 @@ public class HttpDebugController {
                         if(hop>=5){error=Map.of("code","TARGET_REDIRECT_LIMIT_EXCEEDED","message","超出重定向次数");break;}
                         URI next;
                         try{next=ResourceValidation.url(uri.resolve(location.get()).toString());}catch(RuntimeException e){error=Map.of("code","TARGET_REDIRECT_NOT_ALLOWED","message","重定向地址无效");break;}
-                        if(!origins.contains(ResourceValidation.origin(next))){error=Map.of("code","TARGET_REDIRECT_NOT_ALLOWED","message","重定向目标超出允许范围");break;}
                         if(!ResourceValidation.origin(uri).equals(ResourceValidation.origin(next)))headers.clear();
                         if(status==303||((status==301||status==302)&&method.equals("POST"))){method="GET";content=null;headers.remove("Content-Type");}
                         uri=next;continue;

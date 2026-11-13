@@ -34,5 +34,5 @@ onMounted(()=>{window.addEventListener('testpilot:runtime-error',onRuntime);narr
 <div v-if="runtimeError" class="error-banner" role="alert">页面发生异常，已记录不含请求内容的诊断信息。可刷新后重试。<button class="link" @click="runtimeError=false">关闭提示</button></div>
 <div v-if="sharedError" class="error-banner" role="alert">共享配置 · {{sharedError}} <button class="link" @click="refresh">重新加载</button></div>
 <RouterView/>
-<footer class="workspace-footer">TestPilot <span>组内共享工作空间</span></footer></main></div></div>
+<footer class="workspace-footer">TestPilot <span>共享工作空间</span></footer></main></div></div>
 </template>

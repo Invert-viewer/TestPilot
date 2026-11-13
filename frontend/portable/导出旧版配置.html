@@ -8,6 +8,6 @@ document.getElementById('save').onclick=()=>{
   const exported={sites:data.sites||[],environments:data.environments,requests:data.requests||[]};
   const url=URL.createObjectURL(new Blob([JSON.stringify(exported,null,2)],{type:'application/json'}));
   const a=document.createElement('a');a.href=url;a.download='TestPilot-旧版配置.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),2000);
-  document.getElementById('status').textContent='已生成文件，在组内平台的网站与环境页导入。';
+  document.getElementById('status').textContent='已生成文件，在平台的网站与环境页导入。';
  }catch(e){document.getElementById('status').textContent=e.message;}
 };</script></html>
