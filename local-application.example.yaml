@@ -1,0 +1,24 @@
+# Copy to local-application.yaml and fill your own settings.
+spring:
+  datasource:
+    url: jdbc:mysql://localhost:3306/testpilot?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
+    username: testpilot
+    password: REPLACE_WITH_YOUR_DATABASE_PASSWORD
+testpilot:
+  debug:
+    allowed-origins: http://127.0.0.1:4000
+  apifox:
+    cli-path: C:/Users/YOUR_USER/AppData/Roaming/npm/apifox.cmd
+    assets: []
+    # Replace [] above with your own registered scenario, for example
+    # assets:
+    #   - id: asset-your-scenario
+    #     name: Your scenario
+    #     tool: APIFOX_CLI
+    #     kind: APIFOX_SCENARIO
+    #     project-id: "YOUR_PROJECT_ID"
+    #     scenario-id: "YOUR_SCENARIO_ID"
+    #     apifox-environment-id: "YOUR_ENVIRONMENT_ID"
+    #     environment-name: Local
+    #     site-url: http://127.0.0.1:4000
+    #     scenario-key: homepage

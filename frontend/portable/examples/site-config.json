@@ -1,0 +1,7 @@
+{
+  "name": "本地博客演示站",
+  "baseUrl": "http://127.0.0.1:4000/",
+  "scope": "已确认的公开页面，低频只读",
+  "environment": "本地环境",
+  "scenarioKey": "blog-static-pages"
+}

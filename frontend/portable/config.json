@@ -1,0 +1,6 @@
+{
+  "port": 5173,
+  "backendUrl": "http://127.0.0.1:8080",
+  "openBrowser": true,
+  "startPage": "/#/debug"
+}

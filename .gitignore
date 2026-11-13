@@ -1,42 +1,37 @@
-HELP.md
+# Hidden local state; preserve repository and build metadata
+.*/
+.*
+!.gitignore
+!.gitattributes
+!.mvn/
+!.mvn/wrapper/
+!.mvn/wrapper/maven-wrapper.properties
+# Dependencies and generated builds
+node_modules/
+dist/
 target/
-.mvn/wrapper/maven-wrapper.jar
-!**/src/main/**/target/
-!**/src/test/**/target/
-
-### STS ###
-.apt_generated
-.classpath
-.factorypath
-.project
-.settings
-.springBeans
-.sts4-cache
-
-### IntelliJ IDEA ###
-.idea
-*.iws
-*.iml
-*.ipr
-
-### NetBeans ###
-/nbproject/private/
-/nbbuild/
-/dist/
-/nbdist/
-/.nb-gradle/
 build/
-!**/src/main/**/build/
-!**/src/test/**/build/
-
-### VS Code ###
-.vscode/
-
-### Local secrets and test output ###
-.env
-.env.*
-!.env.example
-.apifox/config.toml
-.apifox/*.private.*
-apifox-reports/
+# Runtime state, credentials, database files, reports and deliveries
+local-application*.yaml
+!local-application.example.yaml
+.env*
+*.pem
+*.key
+*.p12
+*.pfx
 *.log
+*.mv.db
+*.trace.db
+data/
+data-*/
+data.bak*/
+apifox-reports/
+交付/
+TestPilot-前端演示/
+*.zip
+skills-lock.json
+# CLI evidence can contain authentication data
+docs/验收/evidence/
+
+docs/参考/
+docs/**/*.png

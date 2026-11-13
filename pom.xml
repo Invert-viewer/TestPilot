@@ -68,11 +68,11 @@
             <artifactId>spring-boot-starter-webmvc-test</artifactId>
             <scope>test</scope>
         </dependency>
-        <!-- Isolated context tests, without requiring a developer's MySQL instance. -->
+        <!-- Local zero-config runtime database (file mode). MySQL remains available via the mysql profile. -->
         <dependency>
             <groupId>com.h2database</groupId>
             <artifactId>h2</artifactId>
-            <scope>test</scope>
+            <scope>runtime</scope>
         </dependency>
     </dependencies>
 

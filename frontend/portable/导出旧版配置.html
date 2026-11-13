@@ -1,0 +1,13 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><title>导出旧版配置</title><h1>导出旧版网站与请求</h1>
+<p>请在原前端服务的同一浏览器、主机名和端口打开本页。下载文件包含请求和环境配置，请妥善保管。</p>
+<button id="save">下载旧版配置 JSON</button><p id="status" role="status"></p><script>
+document.getElementById('save').onclick=()=>{
+ try{
+  const data=JSON.parse(localStorage.getItem('testpilot-apple-preview-v1')||'null');
+  if(!data)throw Error('当前地址没有旧版数据，请核对原浏览器和端口。');
+  const exported={sites:data.sites||[],environments:data.environments,requests:data.requests||[]};
+  const url=URL.createObjectURL(new Blob([JSON.stringify(exported,null,2)],{type:'application/json'}));
+  const a=document.createElement('a');a.href=url;a.download='TestPilot-旧版配置.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),2000);
+  document.getElementById('status').textContent='已生成文件，在组内平台的网站与环境页导入。';
+ }catch(e){document.getElementById('status').textContent=e.message;}
+};</script></html>

@@ -1,0 +1,18 @@
+{
+  "name": "演示网站首页请求",
+  "siteId": "site-xzit",
+  "environmentId": "env-public",
+  "method": "GET",
+  "url": "{{baseUrl}}/",
+  "charset": "UTF-8",
+  "query": [{ "key": "page", "value": "1", "enabled": true }],
+  "headers": [{ "key": "Accept", "value": "text/html", "enabled": true }],
+  "cookies": [],
+  "body": { "mode": "NONE" },
+  "timeoutMs": 5000,
+  "followRedirects": true,
+  "assertions": [
+    { "id": "status-200", "type": "STATUS_CODE", "target": null, "operator": "EQ", "expected": "200", "enabled": true },
+    { "id": "html-type", "type": "HEADER", "target": "Content-Type", "operator": "CONTAINS", "expected": "text/html", "enabled": true }
+  ]
+}

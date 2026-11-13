@@ -1,0 +1,2 @@
+# MySQL 已改为默认数据源，配置在 application.yaml（DB_URL / DB_USERNAME / DB_PASSWORD 可覆盖）。
+# 本文件保留为空仅作说明：--spring.profiles.active=mysql 与默认启动等价。

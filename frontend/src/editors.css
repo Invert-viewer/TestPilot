@@ -1,0 +1,249 @@
+/* Configuration editors share the same form language across the workspace. */
+.field-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px 24px;
+  margin: 20px 0;
+}
+.field-grid label,
+.field-label,
+.workbench-actions > label,
+.group-row label {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  font-size: 12px;
+  color: var(--color-muted);
+  min-width: 0;
+}
+.field-grid input:not([type="checkbox"]),
+.field-grid textarea,
+.field-label input,
+.field-grid select,
+.field-label select,
+.kv-row input:not([type="checkbox"]),
+.assertion-edit-row input:not([type="checkbox"]),
+.assertion-edit-row select,
+.group-row input {
+  width: 100%;
+  border: 1px solid #d2d2d7;
+  border-radius: 8px;
+  background: #fff;
+  padding: 11px 12px;
+  color: #1d1d1f;
+  min-height: 41px;
+  min-width: 0;
+  font-size: 13px;
+}
+.full-field {
+  grid-column: 1/-1;
+}
+.field-grid select[multiple] {
+  min-height: 115px;
+}
+.field-grid label.toggle-field {
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+  min-height: 42px;
+}
+input[type="checkbox"] {
+  accent-color: var(--color-indigo);
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+}
+.input-modes {
+  margin-bottom: 22px;
+}
+.tab-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  border-bottom: 1px solid #d2d2d7;
+  margin: 25px 0 20px;
+  padding-bottom: 10px;
+}
+.tab-strip button {
+  font-size: 12px;
+  padding: 9px 12px;
+  border-radius: 8px;
+  color: var(--color-muted);
+}
+.tab-strip button.active {
+  color: var(--color-indigo);
+  background: #e5effb;
+}
+.tab-strip small {
+  padding-left: 4px;
+}
+.editor-toolbar,
+.inline-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  justify-content: space-between;
+}
+.editor-toolbar {
+  margin: 14px 0;
+  font-size: 12px;
+}
+.kv-editor {
+  margin: 22px 0;
+}
+.kv-row {
+  display: grid;
+  grid-template-columns: 20px 1fr 1.4fr 30px;
+  gap: 10px;
+  align-items: center;
+  margin: 10px 0;
+}
+.remove-row {
+  font-size: 23px;
+  color: #86868b;
+  padding: 3px;
+}
+.bulk-text {
+  width: 100%;
+  min-height: 160px;
+  resize: vertical;
+  border: 1px solid #d2d2d7;
+  border-radius: 12px;
+  padding: 16px;
+  background: #fff;
+  font:
+    12px/1.8 Consolas,
+    monospace;
+  margin: 12px 0;
+}
+.assertion-edit-row {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin: 12px 0;
+  flex-wrap: wrap;
+}
+.assertion-edit-row input:not([type="checkbox"]) {
+  flex: 1;
+  min-width: 120px;
+}
+.assertion-edit-row select {
+  width: auto;
+  max-width: 170px;
+}
+.workbench-actions {
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-end;
+  gap: 18px;
+  flex-wrap: wrap;
+  margin-top: 28px;
+}
+.workbench-actions > label {
+  margin-right: auto;
+}
+.config-section {
+  margin-top: 25px;
+  padding-top: 20px;
+  border-top: 1px solid #e1e1e6;
+}
+.config-section h3 {
+  font-size: 16px;
+  letter-spacing: 0;
+}
+.command-preview {
+  border-top: 1px solid #d2d2d7;
+  margin-top: 24px;
+  padding-top: 18px;
+  font-size: 12px;
+  color: var(--color-muted);
+}
+.command-preview summary {
+  cursor: pointer;
+}
+.command-preview pre {
+  max-height: 280px;
+  overflow: auto;
+}
+.checkbox-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  margin: 22px 0;
+  font-size: 13px;
+}
+.checkbox-row label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.file-button {
+  display: inline-flex;
+  gap: 12px;
+  align-items: center;
+  font-size: 12px;
+  color: var(--color-indigo);
+  padding: 14px 0;
+  flex-wrap: wrap;
+}
+.file-button input {
+  max-width: 100%;
+}
+.group-row {
+  display: grid;
+  grid-template-columns: 1.5fr 1fr 1fr 1fr 28px;
+  gap: 12px;
+  align-items: end;
+  margin: 14px 0;
+}
+.resource-panel {
+  margin-bottom: 25px;
+}
+.resource-panel td.inline-actions {
+  justify-content: flex-start;
+  flex-wrap: wrap;
+}
+.request-workbench .code-editor {
+  min-height: 430px;
+}
+@media (max-width: 700px) {
+  .field-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  .group-row {
+    grid-template-columns: 1fr 1fr;
+  }
+  .group-row .remove-row {
+    grid-column: 2;
+    justify-self: end;
+  }
+  .kv-row {
+    grid-template-columns: 18px 1fr 1fr 24px;
+    gap: 6px;
+  }
+  .kv-row input:not([type="checkbox"]) {
+    padding: 10px 6px;
+    font-size: 11px;
+  }
+  .workbench-actions {
+    gap: 12px;
+  }
+  .workbench-actions > label {
+    width: 100%;
+  }
+  .tab-strip {
+    gap: 4px;
+  }
+  .tab-strip button {
+    padding: 8px;
+    font-size: 11px;
+  }
+  .assertion-edit-row {
+    gap: 7px;
+  }
+  .assertion-edit-row select {
+    max-width: 140px;
+  }
+}
+

@@ -1,0 +1,8 @@
+# H2 文件库回退配置（无需 MySQL 时使用）：mvn spring-boot:run -Dspring-boot.run.profiles=h2
+# 注意：H2 文件库在进程被强杀后会变成只读，正常关闭请用 POST /api/v1/admin/shutdown 或 Ctrl+C。
+spring:
+  datasource:
+    url: ${DB_URL:jdbc:h2:file:./data/testpilot;MODE=MySQL;DATABASE_TO_LOWER=TRUE;DB_CLOSE_ON_EXIT=FALSE}
+    username: ${DB_USERNAME:sa}
+    password: ${DB_PASSWORD:}
+    driver-class-name: ${DB_DRIVER:org.h2.Driver}

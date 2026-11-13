@@ -1,0 +1,16 @@
+:root {
+  --color-near-black:#111827;--color-mist:#f9fafb;--color-card-white:#fff;
+  --color-indigo:#6366f1;--color-positive:#10b981;--color-negative:#ef4444;
+  --color-muted:#6b7280;--color-border:#e5e7eb;--color-line:#f3f4f6;
+  --color-positive-ink:#047857;--color-negative-ink:#b91c1c;
+  --font-sans:Inter,system-ui,-apple-system,'Segoe UI','Microsoft YaHei',sans-serif;
+  --font-mono:'JetBrains Mono',ui-monospace,SFMono-Regular,Consolas,monospace;
+  --text-display:36px;--text-heading:20px;--text-body:13px;--text-label:11px;
+  --spacing-4:4px;--spacing-8:8px;--spacing-12:12px;--spacing-16:16px;--spacing-24:24px;--spacing-32:32px;--spacing-48:48px;
+  --radius-cards:12px;--radius-buttons:8px;--radius-inputs:8px;--radius-chips:8px;
+  --page-max-width:1600px;--section-gap:24px;--card-padding:20px;--element-gap:12px;
+  --shadow-card:0 1px 2px rgba(17,24,39,.06);--shadow-hover:0 4px 12px rgba(17,24,39,.08);
+  --el-color-primary:#6366f1;--el-color-primary-light-3:#818cf8;--el-color-primary-light-5:#a5b4fc;
+  --el-border-radius-base:8px;--el-font-family:var(--font-sans);
+  --blue:var(--color-indigo);--muted:var(--color-muted);
+}
