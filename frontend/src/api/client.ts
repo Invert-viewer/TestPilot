@@ -17,6 +17,10 @@ function bodyError(data:unknown,status:number,traceId:string|null=null): ApiErro
   const b=data && typeof data==='object' ? data as Record<string,unknown>:{};
   const d=b.data && typeof b.data==='object'?b.data as Record<string,unknown>:{};
   const errors=Array.isArray(d.errors)?d.errors.filter((x):x is FieldError=>!!x && typeof x.field==='string' && typeof x.message==='string'):[];
+  const hasEnvelope=typeof b.code==='string'&&typeof b.message==='string'&&'data' in b;
+  // A dev proxy or gateway answers 5xx with plain text when the backend is down; name that cause.
+  if(!hasEnvelope&&status>=500&&(typeof data!=='object'||data===null||status===502||status===503||status===504))
+    return new ApiError({status,code:'BACKEND_UNAVAILABLE',message:`无法连接后端服务（HTTP ${status}）：请确认 Spring Boot 已在 8080 端口启动`,traceId});
   return new ApiError({status,code:typeof b.code==='string'?b.code:`HTTP_${status}`,message:typeof b.message==='string'&&b.message?b.message:`平台请求失败（HTTP ${status}）`,traceId:typeof b.traceId==='string'?b.traceId:traceId,errors});
 }
 export function toApiError(error:unknown):ApiError {

@@ -87,3 +87,5 @@ TestPilot 采用 Vue3 前端和 Spring Boot 后端，通过 REST API 配置、�
 组员反馈复验（2026-11-13）：网站卡片支持连续添加、编辑、删除及独立配色。便携包默认打开请求调试，完整 URL 可直接模拟；真实任务按后端场景提交。已验证四站点、全部删除后刷新、无本地配置时提交请求（接口夹具）及新版 BAT 启动。
 
 2026-11-13 发布整理：清理旧产物、报告与损坏备份；本机业务表已清空，保留结构。部署步骤以根 README 为准。个人场景和 CLI 路径位于本地忽略配置。
+
+2026-11-13 17:10 修复「概览 500」。现象：概览页显示 HTTP_500 / 平台请求失败（HTTP 500）。原因：后端进程未运行时，Vite 开发代理把连接失败回成空的 text/plain 500，前端只按平台信封解析，于是退化成通用 500，看不出真因。修复：frontend/vite.config.js 给 /api 代理加 error 处理，返回 502 + 平台信封 BACKEND_UNAVAILABLE（含 traceId）；frontend/src/api/client.ts 对无信封的 5xx 统一映射为 BACKEND_UNAVAILABLE 并提示启动 8080。验证：停后端时页面显示明确原因与追踪号；启动 jar 后概览无横幅、任务列表正常；页面提交 task-7bfc1913e43048c98ab1（49 用例 / 38 通过 / 11 失败、536 行日志），5173 开发页与 8080 打包页一致；npm run typecheck、npm test（26 项）、npm run build 通过。
