@@ -1,7 +1,7 @@
 <script setup>
 import {ref,computed} from 'vue';
 import {useRouter} from 'vue-router';
-import {ElMessage} from 'element-plus';
+import {ElMessage,ElMessageBox} from 'element-plus';
 import {usePreview,toolLabel,stateLabel,download} from '../preview';
 import {requestModel} from '../config';
 const {state,run}=usePreview(true),router=useRouter();
@@ -21,6 +21,21 @@ function rerun(task) {
   });
   selected.value = null;
   go("tasks");
+}
+function removeDemoTask(task) {
+  ElMessageBox.confirm(
+    "删除演示任务「" + task.name + "」？删除后不可恢复。",
+    "删除演示任务",
+    { type: "warning", confirmButtonText: "删除", cancelButtonText: "取消" },
+  )
+    .then(() => {
+      const index = state.value.tasks.findIndex((item) => item.id === task.id);
+      if (index < 0) return;
+      state.value.tasks.splice(index, 1);
+      if (selected.value?.id === task.id) selected.value = null;
+      ElMessage.success("已删除演示任务");
+    })
+    .catch(() => {});
 }
 const caseDetail = ref(null);
 const imported = ref(null);
@@ -166,7 +181,7 @@ function restorePreview() {
 </script><template>
 <details class="surface section-space"><summary>本地演示归档与复测</summary><p class="helper">来源：浏览器演示数据。这里的导出、导入和模拟复测不执行真实工具。</p>
 <label class="file-button">导入演示归档 JSON<input type="file" accept=".json" @change="importReport"/></label>
-<div v-for="item in state.tasks" :key="item.id" class="check-line"><div>{{item.name}}<small>{{item.id}} · 本地演示 · {{stateLabel(item)}}</small></div><button class="link" @click="selected=item">查看演示报告</button></div></details><el-dialog :model-value="!!selected"
+<div v-for="item in state.tasks" :key="item.id" class="check-line"><div>{{item.name}}<small>{{item.id}} · 本地演示 · {{stateLabel(item)}}</small></div><button class="link" @click="selected=item">查看演示报告</button><button class="link" style="color:var(--color-negative-ink,#b91c1c)" @click="removeDemoTask(item)">删除</button></div></details><el-dialog :model-value="!!selected"
       title="测试报告。"
       width="760px"
       @close="selected = null"

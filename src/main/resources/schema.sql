@@ -74,3 +74,10 @@ CREATE TABLE IF NOT EXISTS workspace_resource (
     payload MEDIUMTEXT NOT NULL,
     PRIMARY KEY(kind,id)
 );
+
+-- 删除过的种子资产记墓碑，避免重启时按 application.yaml 重新插入。
+CREATE TABLE IF NOT EXISTS tool_asset_tombstone (
+    id VARCHAR(64) NOT NULL,
+    deleted_at VARCHAR(40) NOT NULL,
+    PRIMARY KEY (id)
+);

@@ -6,6 +6,7 @@ import edu.xzit.testpilot.store.TaskStore;
 import edu.xzit.testpilot.util.Json;
 import edu.xzit.testpilot.util.JsonWriter;
 import edu.xzit.testpilot.web.ApiException;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -60,7 +61,8 @@ public class TaskService {
     private void seedAssets() {
         String now = now();
         for (TestPilotProperties.SeedAsset asset : properties.getApifox().getAssets()) {
-            if (asset.getId() == null || asset.getId().isBlank() || store.assetExists(asset.getId())) {
+            if (asset.getId() == null || asset.getId().isBlank() || store.assetExists(asset.getId())
+                    || store.isAssetTombstoned(asset.getId())) {
                 continue;
             }
             Map<String, Object> source = new LinkedHashMap<>();
@@ -589,6 +591,110 @@ public class TaskService {
             }
             default -> throw new ApiException(org.springframework.http.HttpStatus.CONFLICT, "TASK_NOT_CANCELLABLE",
                     "任务已处于 " + status + " 状态，无法取消");
+        }
+    }
+
+    // -------------------------------------------------------------- deletion
+
+    /** 删除工具资产：仍被任务引用时拒绝，并记墓碑避免重启后种子资产复活。 */
+    public Map<String, Object> deleteAsset(String assetId) {
+        if (store.findAsset(assetId) == null) {
+            throw ApiException.notFound("工具资产不存在：" + assetId);
+        }
+        long used = store.countTasksByAsset(assetId);
+        if (used > 0) {
+            throw ApiException.conflict("TOOL_ASSET_IN_USE", "已有 " + used + " 个任务引用该场景，请先删除这些任务");
+        }
+        store.deleteAsset(assetId);
+        store.markAssetDeleted(assetId, now());
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("id", assetId);
+        body.put("deleted", true);
+        return body;
+    }
+
+    /** 删除终态任务：连同日志、用例结果、报告目录和共享配置里的引用一起清理。 */
+    public Map<String, Object> deleteTask(String taskId) {
+        Map<String, Object> row = requireTask(taskId);
+        String status = str(row.get("status"));
+        if (!isTerminal(status)) {
+            throw ApiException.conflict("TASK_NOT_DELETABLE", "任务仍在排队或运行，请先取消后再删除");
+        }
+        Path runDir = reportDir(row);
+        store.deleteTask(taskId);
+        cleanupTaskReferences(taskId);
+        deleteQuietly(runDir);
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("id", taskId);
+        body.put("deleted", true);
+        return body;
+    }
+
+    private void cleanupTaskReferences(String taskId) {
+        for (Map<String, Object> row : store.workspaceRows("checks")) {
+            Map<String, Object> payload = parseJsonObject(row.get("payload"));
+            if (taskId.equals(str(payload.get("taskId")))) {
+                payload.put("taskId", "");
+                store.updateWorkspacePayload("checks", str(row.get("id")), revisionOf(row), JsonWriter.write(payload));
+            }
+        }
+        for (Map<String, Object> row : store.workspaceRows("comparisonExperiences")) {
+            Map<String, Object> payload = parseJsonObject(row.get("payload"));
+            if (taskId.equals(str(payload.get("taskId")))) {
+                store.deleteWorkspaceRow("comparisonExperiences", str(row.get("id")));
+            }
+        }
+        for (Map<String, Object> row : store.workspaceRows("comparisons")) {
+            Map<String, Object> payload = parseJsonObject(row.get("payload"));
+            if (!(payload.get("taskIds") instanceof List<?> taskIds)) {
+                continue;
+            }
+            List<Object> kept = new ArrayList<>();
+            for (Object value : taskIds) {
+                if (!taskId.equals(str(value))) {
+                    kept.add(value);
+                }
+            }
+            if (kept.size() != taskIds.size()) {
+                payload.put("taskIds", kept);
+                store.updateWorkspacePayload("comparisons", str(row.get("id")), revisionOf(row), JsonWriter.write(payload));
+            }
+        }
+    }
+
+    private static int revisionOf(Map<String, Object> row) {
+        Object value = row.get("revision");
+        return value instanceof Number number ? number.intValue() : 0;
+    }
+
+    private Path reportDir(Map<String, Object> row) {
+        String runDir = str(row.get("run_dir"));
+        if (runDir.isEmpty()) {
+            return null;
+        }
+        Path base = Path.of(str(properties.getApifox().getReportDir())).toAbsolutePath().normalize();
+        Path target = Path.of(runDir).toAbsolutePath().normalize();
+        if (!target.startsWith(base) || target.equals(base)) {
+            log.warn("跳过报告目录清理（不在报告根目录内）：{}", runDir);
+            return null;
+        }
+        return target;
+    }
+
+    private void deleteQuietly(Path dir) {
+        if (dir == null || !Files.exists(dir)) {
+            return;
+        }
+        try (Stream<Path> stream = Files.walk(dir)) {
+            stream.sorted(Comparator.reverseOrder()).forEach(path -> {
+                try {
+                    Files.deleteIfExists(path);
+                } catch (IOException e) {
+                    log.warn("删除报告文件失败：{}", path, e);
+                }
+            });
+        } catch (IOException e) {
+            log.warn("清理报告目录失败：{}", dir, e);
         }
     }
 

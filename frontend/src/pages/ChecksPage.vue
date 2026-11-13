@@ -1,11 +1,11 @@
 <script setup>
 import {ref,computed} from 'vue';
-import {ElMessage} from 'element-plus';
+import {ElMessage,ElMessageBox} from 'element-plus';
 import {useWorkspace} from '../context';
 import ResourcePanel from '../ResourcePanel.vue';
 import {resources} from '../resources';
 import {toolLabel} from '../preview';
-const {state,newTask,commit,upsert}=useWorkspace();
+const {state,newTask,commit,upsert,remove}=useWorkspace();
 const activeCheck = ref(null);
 function recordCheck(check) {
   activeCheck.value = JSON.parse(JSON.stringify(check));
@@ -13,6 +13,11 @@ function recordCheck(check) {
 async function saveCheck(){
   try{await commit([upsert('checks',{...activeCheck.value,updatedAt:new Date().toISOString()})]);activeCheck.value=null;ElMessage.success('检查记录已保存');}
   catch(e){ElMessage.error(e.message);}
+}
+async function removeCheck(check){
+  try{await ElMessageBox.confirm('删除检查记录「'+check.title+'」？删除后不可恢复。','删除检查记录',{confirmButtonText:'确认删除',cancelButtonText:'取消',type:'warning'});}catch{return;}
+  try{await commit([remove('checks',check)]);ElMessage.success('检查记录已删除');}
+  catch(e){ElMessage.error(e.message||'删除失败');}
 }
 </script><template>
         <ResourcePanel :state="state" v-bind="resources.checks" />
@@ -49,6 +54,8 @@ async function saveCheck(){
                 ]
               }}</span><button class="link" @click="recordCheck(check)">
               记录结果 ›
+            </button><button class="link" style="color:var(--color-negative-ink)" @click="removeCheck(check)">
+              删除
             </button>
           </div>
         </section>

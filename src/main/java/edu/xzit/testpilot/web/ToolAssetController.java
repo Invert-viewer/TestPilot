@@ -3,7 +3,9 @@ package edu.xzit.testpilot.web;
 import edu.xzit.testpilot.service.TaskService;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.Map;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -26,5 +28,11 @@ public class ToolAssetController {
         Object traceId = request.getAttribute(TraceIdFilter.ATTRIBUTE);
         return ApiResult.ok(taskService.listAssets(tool, page, pageSize),
                 traceId == null ? "-" : traceId.toString());
+    }
+
+    @DeleteMapping("/{id}")
+    public Map<String, Object> delete(@PathVariable String id, HttpServletRequest request) {
+        Object traceId = request.getAttribute(TraceIdFilter.ATTRIBUTE);
+        return ApiResult.ok(taskService.deleteAsset(id), traceId == null ? "-" : traceId.toString());
     }
 }

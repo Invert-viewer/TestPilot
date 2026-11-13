@@ -1,14 +1,14 @@
 <script setup>
 import {uuid} from './services/uuid';
 import { ref } from "vue";
-import { ElMessage } from "element-plus";
+import { ElMessage, ElMessageBox } from "element-plus";
 import DualEditor from "./components/DualEditor.vue";
 import KeyValueEditor from "./components/KeyValueEditor.vue";
 import { clone, variableRows, validatePairs } from "./config";
 import { download } from "./preview";
 import {useWorkspace} from './context';
-const {commit,upsert}=useWorkspace();
-const saving=ref(false),originalRevision=ref(0);
+const {commit,upsert,remove}=useWorkspace();
+const saving=ref(false),deleting=ref(false),originalRevision=ref(0);
 const props = defineProps({
   state: { type: Object, required: true },
   collection: { type: String, required: true },
@@ -185,6 +185,24 @@ async function readFile(event, field) {
     event.target.value = "";
   }
 }
+async function removeRow(item) {
+  if (deleting.value) return;
+  const label = item.name || item.title || item.id;
+  try {
+    await ElMessageBox.confirm(
+      '删除「' + label + '」？删除后不可恢复，后端会级联清理关联数据。',
+      '删除配置',
+      { confirmButtonText: '确认删除', cancelButtonText: '取消', type: 'warning' },
+    );
+  } catch { return; }
+  deleting.value = true;
+  try {
+    await commit([remove(props.collection, item)]);
+    ElMessage.success('配置已删除');
+  } catch (e) {
+    ElMessage.error(e.message || '删除失败');
+  } finally { deleting.value = false; }
+}
 defineExpose({ openCreate, edit });
 </script>
 <template>
@@ -235,6 +253,9 @@ defineExpose({ openCreate, edit });
                 "
               >
                 导出 JSON
+              </button
+              ><button class="link delete-row" :disabled="deleting" @click="removeRow(item)">
+                删除
               </button>
             </td>
           </tr>
@@ -375,4 +396,7 @@ defineExpose({ openCreate, edit });
     ></el-dialog
   >
 </template>
+<style scoped>
+.delete-row { color: var(--color-negative-ink) }
+</style>
 

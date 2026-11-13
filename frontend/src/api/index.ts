@@ -1,6 +1,6 @@
 import {uuid} from '../services/uuid';
 import { call, binary } from './client';
-import { pageOf, toolAsset, taskRecord, taskDetail, cursorLogs, caseResult, caseDetail, taskReport, createTaskRequest } from '../types/validation';
+import { pageOf, toolAsset, taskRecord, taskDetail, cursorLogs, caseResult, caseDetail, taskReport, createTaskRequest, object, InputError } from '../types/validation';
 import type { CreateTaskRequest, TaskStatus } from '../types/api';
 export * from './client';
 export {executeRequest} from './workspace';
@@ -25,3 +25,6 @@ export const fetchTaskReport=async(id:string,signal?:AbortSignal)=>(await call('
 export const cancelTask=(id:string,signal?:AbortSignal)=>call('tasks.cancel',{method:'post',url:path(id)+'/cancel',signal},taskRecord);
 export const fetchReportPreview=(id:string,signal?:AbortSignal)=>binary('report.preview',{url:path(id)+'/report/view',signal},true);
 export const fetchReportFile=(id:string,name:string,signal?:AbortSignal)=>binary('report.file',{url:path(id)+'/report/files/'+encodeURIComponent(name),signal});
+const deleted=(v:unknown):{id:string;deleted:true}=>{const o=object(v); if(o.deleted!==true) throw new InputError('deleted','删除响应缺少 deleted 标记',v); return {id:String(o.id??''),deleted:true};};
+export const deleteTask=async(id:string,signal?:AbortSignal)=>(await call('tasks.delete',{method:'delete',url:path(id),signal},deleted)).data;
+export const deleteToolAsset=async(id:string,signal?:AbortSignal)=>(await call('assets.delete',{method:'delete',url:'/tool-assets/'+encodeURIComponent(id),signal},deleted)).data;

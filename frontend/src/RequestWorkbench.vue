@@ -1,7 +1,7 @@
 <script setup>
 import {uuid} from './services/uuid';
 import { ref, watch, onBeforeUnmount } from "vue";
-import { ElMessage } from "element-plus";
+import { ElMessage, ElMessageBox } from "element-plus";
 import DualEditor from "./components/DualEditor.vue";
 import KeyValueEditor from "./components/KeyValueEditor.vue";
 import AssertionEditor from "./AssertionEditor.vue";
@@ -84,6 +84,24 @@ function load(definition, asset=null) {
   result.value = null;
 }
 watch(() => [route.query.siteId, props.state.sites.find(s=>s.id===route.query.siteId)?.id], () => { if(route.query.siteId)load(initialRequest()); });
+function removeHistory(id) {
+  const list = props.state.httpHistory;
+  const index = list.findIndex((item) => item.id === id);
+  if (index < 0) return;
+  const label = list[index].definition?.name || id;
+  ElMessageBox.confirm(
+    "删除这条调试历史「" + label + "」？删除后不可恢复。",
+    "删除调试历史",
+    { type: "warning", confirmButtonText: "删除", cancelButtonText: "取消" },
+  )
+    .then(() => {
+      const current = props.state.httpHistory.findIndex((item) => item.id === id);
+      if (current < 0) return;
+      props.state.httpHistory.splice(current, 1);
+      ElMessage.success("已删除调试历史");
+    })
+    .catch(() => {});
+}
 defineExpose({ load });
 </script>
 <template>
@@ -341,6 +359,7 @@ defineExpose({ load });
                 name: h.definition.name,
                 definition: h.definition,
                 outcome: h.source+' · '+h.outcome,
+                history: true,
               })),
             ]"
             :key="item.id"
@@ -351,6 +370,14 @@ defineExpose({ load });
             <td>{{ item.definition.method }}</td>
             <td>{{ item.outcome ?? "已保存请求" }}</td>
             <td>
+              <button
+                v-if="item.history"
+                class="link"
+                style="color:var(--color-negative-ink,#b91c1c)"
+                @click.stop="removeHistory(item.id)"
+              >
+                删除
+              </button>
               <button class="link" @click="load(item.definition,item.revision?item:null)">
                 载入编辑
               </button>

@@ -225,6 +225,46 @@ public class TaskStore {
         return rows.isEmpty() ? null : rows.get(0);
     }
 
+    // -------------------------------------------------------------- deletion
+
+    public void deleteAsset(String id) {
+        jdbc.update("DELETE FROM tool_asset WHERE id = ?", id);
+    }
+
+    public boolean isAssetTombstoned(String id) {
+        Integer count = jdbc.queryForObject("SELECT COUNT(*) FROM tool_asset_tombstone WHERE id = ?", Integer.class, id);
+        return count != null && count > 0;
+    }
+
+    public void markAssetDeleted(String id, String now) {
+        jdbc.update("DELETE FROM tool_asset_tombstone WHERE id = ?", id);
+        jdbc.update("INSERT INTO tool_asset_tombstone (id, deleted_at) VALUES (?, ?)", id, now);
+    }
+
+    public long countTasksByAsset(String assetId) {
+        Long count = jdbc.queryForObject("SELECT COUNT(*) FROM task WHERE asset_id = ?", Long.class, assetId);
+        return count == null ? 0 : count;
+    }
+
+    public void deleteTask(String id) {
+        jdbc.update("DELETE FROM task_log WHERE task_id = ?", id);
+        jdbc.update("DELETE FROM task_result WHERE task_id = ?", id);
+        jdbc.update("DELETE FROM task WHERE id = ?", id);
+    }
+
+    public List<Map<String, Object>> workspaceRows(String kind) {
+        return jdbc.queryForList("SELECT id, revision, payload FROM workspace_resource WHERE kind = ? ORDER BY id", kind);
+    }
+
+    public void updateWorkspacePayload(String kind, String id, int revision, String payload) {
+        jdbc.update("UPDATE workspace_resource SET revision = revision + 1, payload = ? WHERE kind = ? AND id = ? AND revision = ?",
+                payload, kind, id, revision);
+    }
+
+    public void deleteWorkspaceRow(String kind, String id) {
+        jdbc.update("DELETE FROM workspace_resource WHERE kind = ? AND id = ?", kind, id);
+    }
+
     public static Map<String, Object> row(Object... keyValues) {
         Map<String, Object> map = new LinkedHashMap<>();
         for (int i = 0; i < keyValues.length; i += 2) {

@@ -43,7 +43,6 @@ public class WorkspaceController {
             if(!TYPES.contains(c.collection()) || c.id()==null || !c.id().matches("[a-zA-Z0-9_-]{1,100}") || c.revision()<0)
                 throw ApiException.validation("资源类型、ID 或版本无效");
             if(c.value()==null) {
-                if(!c.collection().equals("sites") && !c.collection().equals("environments")) throw ApiException.validation("不支持删除此资源");
                 if(db.update("DELETE FROM workspace_resource WHERE kind=? AND id=? AND revision=?",c.collection(),c.id(),c.revision())!=1) throw conflict();
                 continue;
             }
@@ -64,7 +63,7 @@ public class WorkspaceController {
                 catch(DuplicateKeyException ex){throw conflict();}
             } else if(db.update("UPDATE workspace_resource SET revision=revision+1,payload=? WHERE kind=? AND id=? AND revision=?",payload,c.collection(),c.id(),c.revision())!=1) throw conflict();
         }
-        var state=read();
+        var state=cascade(read());
         ResourceValidation.references(state);
         for (Change c: changes) {
             if (c.value()==null) continue;
@@ -75,5 +74,76 @@ public class WorkspaceController {
         }
         return ok(state,request);
     }
+    /**
+     * 删除资源后清理悬空引用：删网站连带删它的环境与绑定请求、清空检查记录的 siteId、
+     * 从实验方案移除该网站；删请求连带删引用它的断言用例；删实验方案连带删工具体验记录。
+     */
+    private Map<String,List<Map<String,Object>>> cascade(Map<String,List<Map<String,Object>>> state) {
+        for (int guard = 0; guard < 8; guard++) {
+            boolean changed = false;
+            Set<Object> sites = ids(state, "sites");
+            Set<Object> environments = ids(state, "environments");
+            Set<Object> requests = ids(state, "requests");
+            Set<Object> plans = ids(state, "comparisons");
+            for (Map<String,Object> row : state.get("environments")) {
+                String siteId = text(row.get("siteId"));
+                if (!siteId.isEmpty() && !sites.contains(siteId)) { deleteRow("environments", row); changed = true; }
+            }
+            for (Map<String,Object> row : state.get("requests")) {
+                Map<?,?> definition = row.get("definition") instanceof Map<?,?> map ? map : Map.of();
+                String siteId = text(definition.get("siteId"));
+                String environmentId = text(definition.get("environmentId"));
+                if ((!siteId.isEmpty() && !sites.contains(siteId))
+                        || (!environmentId.isEmpty() && !environments.contains(environmentId))) {
+                    deleteRow("requests", row); changed = true;
+                }
+            }
+            for (Map<String,Object> row : state.get("assertionCases")) {
+                String requestId = text(row.get("requestId"));
+                if (!requestId.isEmpty() && !requests.contains(requestId)) { deleteRow("assertionCases", row); changed = true; }
+            }
+            for (Map<String,Object> row : state.get("checks")) {
+                String siteId = text(row.get("siteId"));
+                if (!siteId.isEmpty() && !sites.contains(siteId)) { row.put("siteId", ""); updateRow("checks", row); changed = true; }
+            }
+            for (Map<String,Object> row : state.get("comparisons")) {
+                List<Object> kept = new ArrayList<>();
+                if (row.get("siteIds") instanceof List<?> values) {
+                    for (Object value : values) {
+                        if (value instanceof String siteId && sites.contains(siteId)) kept.add(siteId);
+                    }
+                }
+                if (!kept.equals(row.get("siteIds"))) { row.put("siteIds", kept); updateRow("comparisons", row); changed = true; }
+            }
+            for (Map<String,Object> row : state.get("comparisonExperiences")) {
+                String comparisonId = text(row.get("comparisonId"));
+                if (!comparisonId.isEmpty() && !plans.contains(comparisonId)) { deleteRow("comparisonExperiences", row); changed = true; }
+            }
+            if (!changed) return state;
+            state = read();
+        }
+        return state;
+    }
+
+    private static Set<Object> ids(Map<String,List<Map<String,Object>>> state, String kind) {
+        Set<Object> result = new HashSet<>();
+        for (Map<String,Object> row : state.get(kind)) result.add(row.get("id"));
+        return result;
+    }
+
+    private static String text(Object value) { return value == null ? "" : String.valueOf(value); }
+
+    private void deleteRow(String kind, Map<String,Object> row) {
+        db.update("DELETE FROM workspace_resource WHERE kind=? AND id=?", kind, row.get("id"));
+    }
+
+    private void updateRow(String kind, Map<String,Object> row) {
+        int revision = row.get("revision") instanceof Number number ? number.intValue() : 0;
+        Map<String,Object> payload = new LinkedHashMap<>(row);
+        payload.remove("revision");
+        db.update("UPDATE workspace_resource SET revision=revision+1, payload=? WHERE kind=? AND id=? AND revision=?",
+                JsonWriter.write(payload), kind, row.get("id"), revision);
+    }
+
     static ApiException conflict(){return ApiException.conflict("VERSION_CONFLICT","其他会话已更新此配置，请刷新页面核对后重试");}
 }

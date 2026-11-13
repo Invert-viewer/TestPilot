@@ -6,6 +6,7 @@ import java.util.Map;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -102,5 +103,10 @@ public class TaskController {
     @PostMapping("/{id}/cancel")
     public Map<String, Object> cancel(@PathVariable String id, HttpServletRequest request) {
         return ApiResult.ok(taskService.cancel(id), traceId(request));
+    }
+
+    @DeleteMapping("/{id}")
+    public Map<String, Object> delete(@PathVariable String id, HttpServletRequest request) {
+        return ApiResult.ok(taskService.deleteTask(id), traceId(request));
     }
 }

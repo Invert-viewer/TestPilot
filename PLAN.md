@@ -97,3 +97,13 @@ TestPilot 采用 Vue3 前端和 Spring Boot 后端，通过 REST API 配置、�
 - 改动：`frontend/src/TaskComposer.vue` 删除提示；`HttpDebugController.java` 删除目标白名单（任意 HTTP(S) 目标可发真实请求，非法协议仍 400）；`WorkspaceController.java` 冲突文案改「其他会话已更新此配置」；`App.vue`、`AssetsPage.vue`、`ChecksPage.vue`、`ToolExperiencePanel.vue` 文案去角色化；`AdminController.java` 关闭线程以 halt 兜底；根目录启动/检查脚本更名为「启动平台.bat」「检查平台.ps1」；`docs/平台使用说明.md`、`docs/验收/平台集成.md`、`frontend/portable/docs/交接/` 完成更名，契约文档写明不启用目标白名单。
 - 验收：5173 页面「新建任务」提交「页面提交-无鉴权-低频只读」→ task-44d07b5c637c4be085cc（17:25:20 创建，17:25:34 结束，49 用例 / 38 通过 / 11 失败，536 行日志，退出码 1）；请求调试对 http://127.0.0.1:4000/about 返回 200（原白名单外地址）。
 - 构建：前端 dist/assets/index-CllhN_dU.js；后端 jar 重建，用 JDK 21 启动。
+
+
+## 2026-11-13 17:45 全部页面大卡片支持删除
+
+- 用户要求：每个页面里的每个大框都要配「删除」。
+- 后端新增 `DELETE /api/v1/tasks/{id}`（仅终态可删；同时删 task/task_log/task_result 与 data/reports 下的报告目录，并清理共享配置引用：实验方案 taskIds 移除、检查记录 taskId 置空、工具体验记录删除；非终态 409 `TASK_NOT_DELETABLE`，不存在 404）与 `DELETE /api/v1/tool-assets/{id}`（被任务引用 409 `TOOL_ASSET_IN_USE`；删除写 `tool_asset_tombstone`，重启不会按 application 配置复活种子资产）。
+- 共享资源删除仍走 `POST /workspace` 且 value=null：`WorkspaceController` 取消「只有网站/环境可删」的 400 限制，并在同一事务里级联清理悬空引用——删网站→删它的环境、绑定该网站的请求及引用这些请求的断言用例，清空检查记录 siteId、从实验方案 siteIds 移除；删环境→删绑定它的请求；删请求→删引用它的断言用例；删实验方案→删它的工具体验记录。清理后仍不满足引用校验则整批回滚 400。
+- 前端：ResourcePanel 通用表每行删除；任务列表与概览「最近任务」删除；测试资产页的真实场景资产、资产卡片、统一请求清单删除；检查清单删除；断言用例删除；工具体验记录删除；请求调试页的调试历史删除；本地演示归档任务删除。统一 ElMessageBox 二次确认，失败原因原文展示（含 409 文案）。
+- 验收（真实接口）：终态任务 DELETE 200 后 GET 404、logs 404、报告目录已消失（task-a2b664631ee14d1ca6c8）；运行中删除 409 `TASK_NOT_DELETABLE`；被引用资产删除 409 `TOOL_ASSET_IN_USE` 且页面显示「已有 3 个任务引用该场景」；5173 任务行删除确认后提示「任务已删除」且列表消失；8080 网站表删除临时站后后端级联清掉其环境。共享资源级联（网站/环境/请求/断言/检查/方案/体验）用临时数据全部验证通过。
+- 校验：`npm run typecheck` 通过，`npm run build` 通过（dist 已更新）；后端 `mvn package` BUILD SUCCESS 并以 JDK 21 重启。提交前把改动文件行尾统一回 LF，diff 无整文件噪声。

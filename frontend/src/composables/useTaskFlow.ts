@@ -23,7 +23,7 @@ export function useTaskFlow(options:{onActiveChange?:(id:string|null)=>void}={})
   const toolAssets=ref<ToolAsset[]>([]),assetsLoading=ref(false),assetsError=ref<api.ApiError|null>(null);
   const tasks=ref<TaskRecord[]>([]),tasksTotal=ref(0),tasksPage=ref(1),tasksLoading=ref(false),tasksError=ref<api.ApiError|null>(null);
   const activeId=ref<string|null>(null),task=ref<TaskDetail|null>(null),detailLoading=ref(false),detailError=ref<api.ApiError|null>(null);
-  const submitting=ref(false),submitError=ref<api.ApiError|null>(null),cancelling=ref(false),cancelError=ref<api.ApiError|null>(null);
+  const submitting=ref(false),submitError=ref<api.ApiError|null>(null),cancelling=ref(false),cancelError=ref<api.ApiError|null>(null),deleting=ref(''),deleteError=ref<api.ApiError|null>(null);
   const logs=ref<TaskLog[]>([]),logCursor=ref<number|null>(null),logsComplete=ref(false),logsLoading=ref(false),logsError=ref<api.ApiError|null>(null);
   const results=ref<CaseResult[]>([]),resultsTotal=ref(0),resultsLoading=ref(false),resultsError=ref<api.ApiError|null>(null);
   const report=ref<TaskReport|null>(null),reportError=ref<api.ApiError|null>(null),reportLoading=ref(false);
@@ -130,11 +130,25 @@ export function useTaskFlow(options:{onActiveChange?:(id:string|null)=>void}={})
     catch(error){if(current(g)&&!api.isCancelled(error))cancelError.value=fail(error);}
     finally{if(current(g))cancelling.value=false;}
   }
+  async function deleteTask(id:string,{status='ALL',page=1}:{status?:TaskStatus|'ALL';page?:number}={}) {
+    const target=id.trim();
+    if(!target||deleting.value)return false;
+    deleting.value=target;deleteError.value=null;
+    try {
+      await api.deleteTask(target);
+      if(activeId.value===target)clearActive();
+      await loadTasks(status,page);
+      return true;
+    } catch(error) {
+      deleteError.value=fail(error);
+      throw deleteError.value;
+    } finally {deleting.value='';}
+  }
   function clearActive(){reset();activeId.value=null;options.onActiveChange?.(null);}
   onBeforeUnmount(()=>{disposed=true;reset();assetsController.abort();listController.abort();submitController.abort();});
   return {toolAssets,assetsLoading,assetsError,tasks,tasksTotal,tasksPage,tasksLoading,tasksError,activeId,task,detailLoading,detailError,submitting,submitError,
     logs,logCursor,logsComplete,logsLoading,logsError,results,resultsTotal,resultsLoading,resultsError,report,reportError,reportLoading,
-    alerts,cancelling,cancelError,caseDetails,caseDetailLoading,caseDetailError,loadAssets,loadTasks,open,submit,refreshActive,refreshStatus,pullLogs,loadResults,loadReport,toggleCase,cancel,clearActive,
+    alerts,cancelling,cancelError,deleting,deleteError,caseDetails,caseDetailLoading,caseDetailError,loadAssets,loadTasks,open,submit,refreshActive,refreshStatus,pullLogs,loadResults,loadReport,toggleCase,cancel,deleteTask,clearActive,
     dismissAlert:(id:string)=>{alerts.value=alerts.value.filter(a=>a.id!==id);}};
 }
 export type TaskFlow=ReturnType<typeof useTaskFlow>;
