@@ -1,38 +1,32 @@
 <script setup lang="ts">
-import {ref,computed,provide,onMounted,onBeforeUnmount,nextTick,watch} from 'vue';
-import {useRoute,useRouter} from 'vue-router';
-import {usePreview} from './preview';
-import {useSharedWorkspace} from './composables/useSharedWorkspace';
-import {workspaceKey} from './context';
-const route=useRoute(),router=useRouter(),preview=usePreview(),navOpen=ref(false),runtimeError=ref(false),menuButton=ref<HTMLButtonElement|null>(null),isNarrow=ref(matchMedia('(max-width:900px)').matches);
-const narrowMedia=matchMedia('(max-width:900px)'),onResize=()=>{isNarrow.value=narrowMedia.matches;if(!isNarrow.value)navOpen.value=false;};
-const navigation=[{id:'overview',label:'概览',icon:'M3 3h7v7H3z M14 3h7v7h-7z M3 14h7v7H3z M14 14h7v7h-7z'},{id:'sites',label:'网站与环境',icon:'M3 5h18v14H3z M3 9h18 M7 7h.01 M10 7h.01'},{id:'assets',label:'测试资产',icon:'M4 4h6l2 3h8v13H4z M8 12h8 M8 16h5'},{id:'debug',label:'请求调试',icon:'m8 7-5 5 5 5 M16 7l5 5-5 5 M14 4l-4 16'},{id:'tasks',label:'任务与报告',icon:'M5 3h14v18H5z M8 8h8 M8 12h8 M8 16h5'},{id:'compare',label:'实验对比',icon:'M4 20V10h5v10 M10 20V4h5v16 M16 20v-7h5v7'},{id:'regression',label:'断言回归',icon:'m4 6 2 2 4-4 M13 6h7 M4 14l2 2 4-4 M13 14h7 M13 20h7'},{id:'checks',label:'检查验收',icon:'M12 3 3 7v6c0 5 9 8 9 8s9-3 9-8V7z m-5 9 3 3 6-6'}];
-const page=computed(()=>navigation.find(p=>'/'+p.id===route.path)||navigation[0]);
-const source=computed(()=>page.value.id==='debug'?'真实请求 / 本地模拟':'共享平台');
-function newTask(){void router.push({path:'/tasks',query:{...route.path==='/tasks'?route.query:{},compose:'1'}});}
-const shared=useSharedWorkspace(preview.state);
-const {sharedError,refresh}=shared;
-provide(workspaceKey,{...preview,...shared,newTask});
-function onRuntime(){runtimeError.value=true;}
-async function closeNav(){navOpen.value=false;await nextTick();menuButton.value?.focus();}
-function skip(){document.getElementById('main-content')?.focus();}
-function trapNav(event:KeyboardEvent){if(!navOpen.value||!isNarrow.value||event.key!=='Tab')return;const links=[...document.querySelectorAll<HTMLAnchorElement>('#sidebar a')],first=links[0],last=links.at(-1);if(event.shiftKey&&document.activeElement===first){event.preventDefault();last?.focus();}else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first?.focus();}}
-watch(navOpen,async open=>{if(open&&isNarrow.value){await nextTick();document.querySelector<HTMLAnchorElement>('#sidebar a')?.focus();}});
-watch(()=>route.path,async()=>{void shared.refresh();navOpen.value=false;await nextTick();document.getElementById('page-title')?.focus();});
-onMounted(()=>{window.addEventListener('testpilot:runtime-error',onRuntime);narrowMedia.addEventListener('change',onResize);});onBeforeUnmount(()=>{window.removeEventListener('testpilot:runtime-error',onRuntime);narrowMedia.removeEventListener('change',onResize);});
+import { computed, defineAsyncComponent, onMounted, onBeforeUnmount, ref, watch } from 'vue';
+import PageLoading from './components/PageLoading.vue';
+import AuthGate from './components/AuthGate.vue';
+import Icon from './components/Icon.vue';
+import Modal from './components/Modal.vue';
+import { notice, storageError, confirmation, answerConfirmation, ask, toast, data } from './store';
+import { api, user, identify, roleNames } from './auth';
+import { project, projectId, resources, refreshProjects, switchProject, sync, flush, contextVersion } from './platform';
+import { downloadJson, workspaces } from './execution';
+const lazyPage=(loader:()=>Promise<any>)=>defineAsyncComponent({loader,loadingComponent:PageLoading,delay:120});
+const pages:Record<string,any>={ai:lazyPage(()=>import('./pages/AiPage.vue')),api:lazyPage(()=>import('./pages/ApiPage.vue')),ui:lazyPage(()=>import('./pages/UiPage.vue')),perf:lazyPage(()=>import('./pages/PerfPage.vue')),unit:lazyPage(()=>import('./pages/UnitPage.vue')),security:lazyPage(()=>import('./pages/SecurityPage.vue')),compat:lazyPage(()=>import('./pages/CompatPage.vue')),projects:lazyPage(()=>import('./pages/ProjectsPage.vue')),toolchain:lazyPage(()=>import('./pages/ToolchainPage.vue')),settings:lazyPage(()=>import('./pages/SettingsPage.vue'))};
+const entries=[{id:'api',label:'接口测试'},{id:'ui',label:'UI 自动化'},{id:'perf',label:'性能测试'},{id:'unit',label:'单元测试'},{id:'security',label:'安全测试'},{id:'compat',label:'兼容性测试'},{id:'projects',label:'项目与环境'},{id:'toolchain',label:'真实工具链'},{id:'settings',label:'平台设置'},{id:'ai',label:'AI 中心'}];
+const active=ref('api'),mobileOpen=ref(false),booted=ref(false),starting=ref(false);
+const current=computed(()=>entries.find(e=>e.id===active.value)!);
+const configPage=computed(()=>['projects','toolchain','settings'].includes(active.value));
+const shown=computed(()=>!project.value&&!configPage.value&&active.value!=='ai'?'projects':active.value);
+function readRoute(){const id=location.hash.replace(/^#\/?/,'').split('?')[0];active.value=entries.some(e=>e.id===id)?id!:'api';mobileOpen.value=false;window.scrollTo({top:0});}
+async function initialize(){starting.value=true;try{await refreshProjects();}catch{}finally{starting.value=false;}}
+async function changeProject(event:Event){const element=event.target as HTMLSelectElement,id=element.value;element.value=projectId.value;try{await switchProject(id);}catch(e){toast((e as Error).message,true);}}
+async function logout(){await flush();if(sync.error&&!await ask('部分配置尚未同步。退出后仍可在当前浏览器恢复，确定退出？'))return;try{await api('auth/logout','POST',{});user.value=undefined;sync.ready=false;}catch(e){toast((e as Error).message,true);}}
+async function reload(){if(!await ask('重新读取数据库配置？当前未同步改动会被覆盖，可先导出本地配置。'))return;await initialize();}
+watch(()=>user.value?.id,(id)=>{if(booted.value&&id)initialize();});
+onMounted(async()=>{readRoute();window.addEventListener('hashchange',readRoute);await identify();booted.value=true;if(user.value)await initialize();});
+onBeforeUnmount(()=>window.removeEventListener('hashchange',readRoute));
 </script>
-<template>
-<a class="skip-link" href="#main-content" @click.prevent="skip">跳到主要内容</a>
-<div class="app-shell" @keydown.esc="navOpen&&closeNav()" @keydown="trapNav">
-<aside id="sidebar" :inert="isNarrow&&!navOpen" :class="['sidebar',{open:navOpen}]" aria-label="工作空间导航">
-<RouterLink class="brand" to="/overview"><span class="brand-icon">T</span><span>TestPilot<small>自动化测试平台</small></span></RouterLink>
-<div class="rail-caption">工作空间</div><nav aria-label="主导航"><RouterLink v-for="item in navigation" :key="item.id" :to="'/'+item.id" :class="['nav-item',{current:page.id===item.id}]" :aria-current="page.id===item.id?'page':undefined"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path :d="item.icon"/></svg>{{item.label}}</RouterLink></nav>
-<div class="rail-footer"><span class="connection-dot"></span>本地工作空间<small>Apifox CLI · Spring Boot</small></div>
-</aside><button v-if="navOpen" class="nav-backdrop" aria-label="关闭导航" @click="closeNav"></button>
-<div class="app-main"><header class="topbar"><button ref="menuButton" class="menu-toggle" :aria-expanded="navOpen" aria-controls="sidebar" aria-label="切换导航" @click="navOpen=!navOpen">☰</button><span class="breadcrumb">工作空间 <span>/</span> {{page.label}}</span><span class="source-chip">{{source}}</span><button class="button small" @click="newTask">＋ 新建任务</button></header>
-<main id="main-content" tabindex="-1" class="work-area wrap"><div class="work-heading"><div><p class="eyebrow">TESTPILOT / WORKSPACE</p><h1 id="page-title" tabindex="-1">{{page.label}}</h1></div><span class="muted">本地运行</span></div>
-<div v-if="runtimeError" class="error-banner" role="alert">页面发生异常，已记录不含请求内容的诊断信息。可刷新后重试。<button class="link" @click="runtimeError=false">关闭提示</button></div>
-<div v-if="sharedError" class="error-banner" role="alert">共享配置 · {{sharedError}} <button class="link" @click="refresh">重新加载</button></div>
-<RouterView/>
-<footer class="workspace-footer">TestPilot <span>共享工作空间</span></footer></main></div></div>
+<template><PageLoading v-if="!booted" /><AuthGate v-else-if="!user" /><div v-else class="workspace">
+<div v-if="mobileOpen" class="sidebar-scrim" @click="mobileOpen=false"></div><aside class="sidebar" :class="{'is-open':mobileOpen}"><a href="#/api" class="brand" aria-label="TestPilot 首页"><div class="brand-mark"><Icon name="layers" :size="26" /></div><div><strong>TestPilot<span class="brand-dot">.</span></strong><small>测试，从这里开始</small></div></a><div class="nav-heading">工作台</div><nav aria-label="工作台"><a href="#/ai" class="nav-link" :class="{active:active==='ai'}" :aria-current="active==='ai'?'page':undefined"><Icon name="ai" :size="21" /><span>AI 中心</span><span class="badge soft nav-ai-badge">AI</span></a></nav><div class="nav-heading config-nav-heading">测试执行</div><nav aria-label="测试执行"><a v-for="item in entries.slice(0,6)" :key="item.id" :href="`#/${item.id}`" class="nav-link" :class="{active:active===item.id}" :aria-current="active===item.id?'page':undefined"><Icon :name="item.id" :size="21" /><span>{{item.label}}</span></a></nav><div class="nav-heading config-nav-heading">配置</div><nav aria-label="平台配置"><a v-for="item in entries.filter(e=>['projects','toolchain','settings'].includes(e.id))" :key="item.id" :href="`#/${item.id}`" class="nav-link" :class="{active:active===item.id}" :aria-current="active===item.id?'page':undefined"><Icon :name="item.id" :size="21" /><span>{{item.label}}</span></a></nav><div class="sidebar-footer"><div class="workspace-avatar">{{user.displayName.slice(0,1)}}</div><div><strong>{{user.displayName}}</strong><small>{{roleNames[user.role]}}</small></div><button class="icon-button" aria-label="退出登录" @click="logout"><Icon name="logout" :size="17" /></button></div></aside>
+<div class="main-shell"><header class="topbar"><div class="breadcrumbs"><button class="icon-button mobile-menu" aria-label="展开侧边栏" @click="mobileOpen=!mobileOpen"><Icon name="menu" /></button><span>{{active==='ai'?'工作台':configPage?'配置':'测试执行'}}</span><Icon name="chevron" :size="14" /><strong>{{current.label}}</strong></div><div class="topbar-context"><span class="sync-indicator" :class="{'text-bad':sync.error}"><span :class="['status-dot',{off:!!sync.error}]"></span>{{sync.saving?'正在同步':sync.error?'未同步':sync.ready?'数据库已连接':'正在连接'}}</span><select v-if="resources.sites.length" :value="projectId" aria-label="当前项目" @change="changeProject"><option v-for="p in resources.sites" :key="p.id" :value="p.id">{{p.name}}</option></select></div></header>
+<main :aria-label="current.label"><div v-if="sync.error" class="error-banner sync-banner" role="alert">{{sync.error}}<button class="text-button" @click="flush">重试保存</button><button class="text-button" @click="downloadJson({data,workspaces},'testpilot-unsynced.json')">导出本地配置</button><button class="text-button" @click="reload">重新读取</button></div><div v-if="storageError.message" class="error-banner" role="alert">{{storageError.message}}</div><PageLoading v-if="starting" /><KeepAlive v-else-if="sync.ready" :key="`${user.id}:${contextVersion}`"><component :is="pages[shown]" :key="shown" /></KeepAlive><div v-else class="page"><button class="button" @click="initialize">重新连接数据库</button></div></main></div></div>
+<Transition name="toast"><div v-if="notice.text" class="toast-message" :class="{error:notice.error}" role="status"><Icon :name="notice.error?'alert':'success'" :size="18" />{{notice.text}}</div></Transition><Modal v-if="confirmation" title="确认操作" @close="answerConfirmation(false)"><p class="muted help">{{confirmation.message}}</p><template #footer><button class="button" @click="answerConfirmation(false)">取消</button><button class="button primary" @click="answerConfirmation(true)">确认</button></template></Modal>
 </template>

@@ -20,6 +20,11 @@ final class ResourceValidation {
     }
     static String origin(URI u) {return u.getScheme()+"://"+u.getHost().toLowerCase(Locale.ROOT)+":"+(u.getPort()<0?(u.getScheme().equals("https")?443:80):u.getPort());}
     static void check(String type,Map<String,Object> row) {
+        if(type.equals("executionSpaces")) {
+            text(row,"name"); text(row,"siteId");
+            if(!(row.get("data") instanceof Map<?,?>)) throw invalid("data","需要执行工作区配置");
+            return;
+        }
         if(!type.equals("comparisonExperiences"))text(row,type.equals("checks")?"title":"name");
         if(type.equals("sites") || type.equals("environments")) {
             if(url(text(row,"baseUrl")).getQuery()!=null) throw invalid("baseUrl","网站和环境地址不能包含查询串");
@@ -61,8 +66,11 @@ final class ResourceValidation {
     static void references(Map<String,List<Map<String,Object>>> state) {
         Map<Object,String> origins=new HashMap<>();
         for(var site:state.get("sites")) origins.put(site.get("id"),origin(url((String)site.get("baseUrl"))));
-        for(var env:state.get("environments")) if(!origin(url((String)env.get("baseUrl"))).equals(origins.get(env.get("siteId"))))
-            throw invalid("environment.siteId","环境必须与所属网站同源，请刷新核对网站和环境");
+        // A project may have local, staging and production environments on different hosts.
+        for(var env:state.get("environments")) if(!origins.containsKey(env.get("siteId")))
+            throw invalid("environment.siteId","所属项目不存在");
+        for(var space:state.get("executionSpaces")) if(!origins.containsKey(space.get("siteId")))
+            throw invalid("executionSpaces.siteId","所属项目不存在");
         Set<Object> requestIds=new HashSet<>();
         state.get("requests").forEach(r->requestIds.add(r.get("id")));
         for(var regression:state.get("assertionCases"))if(regression.get("requestId") instanceof String id && !id.isBlank() && !requestIds.contains(id))throw invalid("requestId","关联请求不存在");

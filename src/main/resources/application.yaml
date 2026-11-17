@@ -1,3 +1,7 @@
+server:
+  address: ${TESTPILOT_BIND_ADDRESS:127.0.0.1}
+  port: ${TESTPILOT_BACKEND_PORT:8081}
+
 spring:
   application:
     name: TestPilot
@@ -24,6 +28,11 @@ mybatis:
     map-underscore-to-camel-case: true
 
 testpilot:
+  frontend:
+    enabled: ${TESTPILOT_FRONTEND_ENABLED:true}
+    port: ${TESTPILOT_FRONTEND_PORT:5174}
+    node-path: ${TESTPILOT_NODE_PATH:node}
+    directory: ./frontend
   apifox:
     cli-path: ${APIFOX_CLI_PATH:apifox.cmd}
     shell: cmd.exe

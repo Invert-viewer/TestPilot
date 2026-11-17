@@ -6,11 +6,14 @@
 !.mvn/
 !.mvn/wrapper/
 !.mvn/wrapper/maven-wrapper.properties
+!.run/
+!.run/*.run.xml
 # Dependencies and generated builds
 node_modules/
 dist/
 target/
 build/
+docs/
 # Runtime state, credentials, database files, reports and deliveries
 local-application*.yaml
 !local-application.example.yaml

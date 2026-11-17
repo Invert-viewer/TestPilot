@@ -1,0 +1,34 @@
+<script setup lang="ts">
+import { computed, onMounted, ref } from 'vue';
+import { clone } from '../model';
+import { ask } from '../store';
+import { unitTemplates, type UnitConfig } from '../unitTemplates';
+import { capabilities, loadCapabilities, useExecution, savePreset, downloadJson, type UnitResult } from '../execution';
+import Icon from '../components/Icon.vue';
+import EnvironmentPicker from '../components/EnvironmentPicker.vue';
+import CodeEditor from '../components/CodeEditor.vue';
+import ExecutionStatus from '../components/ExecutionStatus.vue';
+import ExecutionHistory from '../components/ExecutionHistory.vue';
+import PresetBar from '../components/PresetBar.vue';
+const draft = ref<UnitConfig>(clone(unitTemplates.java![0]!.config)), tab = ref('implementation'), presetId = ref(''), expanded = ref(-1);
+const { job, result, busy, error, run, cancel, loadHistory } = useExecution<UnitResult>('unit');
+const templates = computed(() => unitTemplates[draft.value.language] || []);
+const reportLabel = computed(() => !result.value ? '' : result.value.compileError ? '编译 / 加载失败' : result.value.success ? '全部通过' : result.value.failed ? '测试未通过' : result.value.skipped ? '包含跳过' : '未发现测试');
+const code = computed({ get: () => tab.value === 'implementation' ? draft.value.implementation : draft.value.tests,
+  set: value => { if (tab.value === 'implementation') draft.value.implementation = value; else draft.value.tests = value; } });
+function load(payload: UnitConfig, id: string) { draft.value = clone(payload); presetId.value = id; }
+function save() { presetId.value = savePreset('unit', draft.value.name, draft.value, presetId.value) || ''; }
+async function template(config: UnitConfig) { if (!await ask('载入示例会替换当前实现与测试代码，是否继续？')) return; draft.value = clone(config); presetId.value = ''; }
+async function language(event: Event) {
+  const select = event.target as HTMLSelectElement, value = select.value;
+  if (await ask('切换执行器会载入对应的代码示例，是否继续？')) { draft.value = clone(unitTemplates[value]![0]!.config); presetId.value = ''; }
+  else select.value = draft.value.language;
+}
+onMounted(loadCapabilities);
+</script>
+<template><div class="page lab-page"><div class="page-heading"><div><div class="eyebrow">JAVA BACKEND / TYPESCRIPT FRONTEND</div><h1>单元测试</h1><p>沿用项目的 Java 与 TypeScript 技术体系，让实现代码与边界断言一起接受验证。</p></div><div class="page-actions"><EnvironmentPicker compact /><button class="button" @click="save"><Icon name="save" />保存用例</button><button class="button primary" :disabled="busy" @click="run(draft)"><Icon :name="busy ? 'loader' : 'play'" :class="{spin: busy}" />{{ busy ? '测试执行中' : '运行测试' }}</button></div></div><PresetBar kind="unit" @load="load"><span class="muted help">支持 Ctrl / ⌘ + Enter 运行</span></PresetBar>
+  <section class="card unit-toolbar"><label class="field">测试名称<input v-model="draft.name" aria-label="单元测试名称" /></label><label class="field">语言与执行器<select :value="draft.language" aria-label="单元测试执行器" @change="language"><option value="java">Java 21 · JUnit 6</option><option value="typescript">TypeScript / JavaScript · Vitest</option></select></label><label class="field">单测超时 ms<input v-model.number="draft.timeoutMs" type="number" min="100" max="10000" aria-label="单个测试超时时间" /></label><span class="runtime-badge"><span :class="['status-dot', {off: draft.language === 'java' && !capabilities?.java}]"></span>{{ draft.language === 'java' ? capabilities?.java ? 'JDK 已检测到' : '检测 JDK 中' : '复用前端 Vitest' }}</span></section>
+  <div class="unit-workspace"><section class="card unit-source"><div class="unit-editor-heading"><div class="segmented"><button :class="{active: tab === 'implementation'}" @click="tab = 'implementation'">{{ draft.language === 'java' ? 'Subject.java' : 'subject.ts' }}</button><button :class="{active: tab === 'tests'}" @click="tab = 'tests'">{{ draft.language === 'java' ? 'SubjectTest.java' : 'subject.test.ts' }}</button></div><span class="editor-language">{{ draft.language === 'java' ? 'JAVA' : 'TYPESCRIPT' }}</span></div><div class="unit-templates"><span>示例</span><button v-for="item in templates" :key="item.id" class="text-button" @click="template(item.config)">{{ item.label }}</button></div><CodeEditor v-model="code" :language="draft.language" :label="tab === 'implementation' ? '单元测试实现代码' : '单元测试断言代码'" @run="run(draft)" /><div class="source-footer"><span>{{ tab === 'implementation' ? '实现模块' : '断言模块' }} · {{ code.split('\n').length }} 行</span><button class="text-button" :disabled="busy" @click="run(draft)"><Icon name="play" :size="13" />运行</button></div><p class="lab-footnote unit-code-help">{{ draft.language === 'java' ? '实现使用无 package 的 Subject 类，测试类使用 SubjectTest；环境变量可用 TestEnvironment.get("变量名") 读取。' : '测试通过 ./subject 导入实现；支持 test、expect、describe、异步测试，环境变量通过 env 读取。' }}</p></section>
+  <section class="card lab-panel unit-report"><div class="section-title"><h2>测试报告</h2><span v-if="result" :class="['badge', result.success ? 'good' : 'bad']">{{ reportLabel }}</span></div><ExecutionStatus :job="job" :busy="busy" :error="error" @cancel="cancel" /><div v-if="!result && !busy && !job?.error" class="unit-report-empty"><Icon name="unit" :size="31" /><h3>先写预期，再验证实现</h3><p>运行后显示发现的测试、断言失败位置和原始输出。</p></div><template v-if="result"><div class="unit-test-counts"><div><strong>{{ result.passed }}</strong><span>通过</span></div><div><strong class="text-bad">{{ result.failed }}</strong><span>失败</span></div><div><strong>{{ result.skipped }}</strong><span>跳过</span></div><div><strong>{{ result.durationMs }}</strong><span>毫秒</span></div></div><p class="muted help">{{ result.engine }} · {{ result.total }} 项测试</p><div class="unit-case-results"><div v-for="(item, index) in result.cases" :key="index" class="unit-test-case"><button @click="expanded = expanded === index ? -1 : index"><Icon :name="item.status === 'PASSED' ? 'success' : item.status === 'SKIPPED' ? 'clock' : 'alert'" :class="item.status === 'PASSED' ? 'text-good' : item.status === 'FAILED' ? 'text-bad' : 'muted'" :size="16" /><span><strong>{{ item.name }}</strong><small v-if="item.group">{{ item.group }}</small></span><span class="muted help">{{ item.durationMs }} ms</span><Icon v-if="item.error" name="down" :size="13" /></button><pre v-if="item.error && (expanded === index || item.status === 'FAILED')" class="failure-stack">{{ item.error }}</pre></div></div><details :open="result.compileError" class="raw-output"><summary>原始执行输出</summary><pre>{{ result.output || '执行器未输出额外信息。' }}</pre></details><div class="artifact-links"><a v-for="file in job?.artifacts" :key="file.filename" :href="file.url" download>{{ file.label }}</a><button class="text-button" @click="downloadJson(job, `unit-${job!.id}.json`)">导出报告 JSON</button></div></template></section></div>
+  <p class="execution-boundary">测试在独立本机进程中运行，并非操作系统沙箱；请仅运行可信代码。实现与测试文件写入 frontend/.runs，不修改 Java 后端源码。</p><ExecutionHistory kind="unit" @select="loadHistory" />
+</div></template>

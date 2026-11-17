@@ -12,7 +12,7 @@ import java.util.*;
 @RestController
 @RequestMapping("/api/v1/workspace")
 public class WorkspaceController {
-    static final List<String> TYPES = List.of("sites","environments","requests","assets","parameterPlans","comparisons","comparisonExperiences","assertionCases","checks");
+    static final List<String> TYPES = List.of("sites","environments","requests","assets","parameterPlans","comparisons","comparisonExperiences","assertionCases","checks","executionSpaces");
     private final JdbcTemplate db;
     public WorkspaceController(JdbcTemplate db) { this.db = db; }
     public record Change(String collection, String id, int revision, Map<String,Object> value) {}
@@ -88,6 +88,9 @@ public class WorkspaceController {
             for (Map<String,Object> row : state.get("environments")) {
                 String siteId = text(row.get("siteId"));
                 if (!siteId.isEmpty() && !sites.contains(siteId)) { deleteRow("environments", row); changed = true; }
+            }
+            for (Map<String,Object> row : state.get("executionSpaces")) {
+                if (!sites.contains(row.get("siteId"))) { deleteRow("executionSpaces", row); changed = true; }
             }
             for (Map<String,Object> row : state.get("requests")) {
                 Map<?,?> definition = row.get("definition") instanceof Map<?,?> map ? map : Map.of();

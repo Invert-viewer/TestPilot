@@ -10,3 +10,7 @@ spring:
 mybatis:
   configuration:
     map-underscore-to-camel-case: true
+
+testpilot:
+  frontend:
+    enabled: false

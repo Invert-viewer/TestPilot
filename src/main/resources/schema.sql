@@ -81,3 +81,34 @@ CREATE TABLE IF NOT EXISTS tool_asset_tombstone (
     deleted_at VARCHAR(40) NOT NULL,
     PRIMARY KEY (id)
 );
+
+-- Shared platform configuration and revocable login sessions. Existing business tables stay intact.
+CREATE TABLE IF NOT EXISTS platform_user (
+    id VARCHAR(64) PRIMARY KEY,
+    username VARCHAR(80) NOT NULL UNIQUE,
+    display_name VARCHAR(100) NOT NULL,
+    email VARCHAR(200) NOT NULL,
+    role VARCHAR(30) NOT NULL,
+    password_hash VARCHAR(400) NOT NULL,
+    created_at VARCHAR(40) NOT NULL
+);
+CREATE TABLE IF NOT EXISTS platform_session (
+    token_hash VARCHAR(64) PRIMARY KEY,
+    user_id VARCHAR(64) NOT NULL,
+    expires_at BIGINT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS platform_setting (
+    setting_key VARCHAR(80) PRIMARY KEY,
+    payload MEDIUMTEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS ai_record (
+    id VARCHAR(64) PRIMARY KEY,
+    user_id VARCHAR(64) NOT NULL,
+    site_id VARCHAR(100) NOT NULL,
+    kind VARCHAR(20) NOT NULL,
+    provider VARCHAR(30) NOT NULL,
+    model VARCHAR(150) NOT NULL,
+    payload MEDIUMTEXT NOT NULL,
+    created_at VARCHAR(40) NOT NULL
+);
